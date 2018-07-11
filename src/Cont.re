@@ -1,19 +1,28 @@
-type t('r, 'a) =
-  | Cont(('a => 'r) => 'r);
+type t('r, 'a) = {cont: ('a => 'r) => 'r};
 
-let cont = c => Cont(c);
+let cont = c => {cont: c};
 
-let run = (Cont(f), k) => f(k);
+let run = ({cont}, k) => cont(k);
 
-let make = a => Cont(k => k(a));
+let make = x => {cont: k => k(x)};
 
-let map = (f, c) => Cont(k => run(c, x => k(f(x))));
+let map = (f, m) => {cont: k => m.cont(x => x |> f |> k)};
 
-let apply = (f, c) => Cont(k => run(f, g => run(c, x => k(g(x)))));
+let apply = (f, m) => {cont: k => f.cont(g => m.cont(x => x |> g |> k))};
 
-let bind = (f, c) => Cont(k => run(c, x => run(f(x), k)));
+let bind = (f, m) => {cont: k => m.cont(x => f(x).cont(k))};
 
-let callCC = f => Cont(k => run(f(x => Cont(_c => k(x))), k));
+let callCC = f => {cont: k => f(x => {cont: _c => k(x)}).cont(k)};
+
+let id = x => x;
+
+let reset = e => {cont: k => k(e.cont(id))};
+
+/* let shift e = {cont = fun k ->
+   (e (fun v -> {cont = fun c -> c (k v)})).cont id} */
+let shift = (f: ('a => 'r) => t('r, 'r)) : t('r, 'a) => {
+  cont: k => f(k).cont(id),
+};
 
 module Operators = {
   let (>>=) = (f, c) => bind(c, f);

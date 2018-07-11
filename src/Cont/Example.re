@@ -31,3 +31,19 @@ let delay = (ms, x) =>
     run(foo(x), Js.log);
   };
 };
+
+{
+  /* From http://okmij.org/ftp/continuations/ContExample.hs */
+  let ex1 =
+    Cont.(
+      make((+))
+      |. apply(make(1))
+      |. apply(
+           reset @@
+           make(( * ))
+           |. apply(make(2))
+           |. apply(shift @@ (k => make(10 |> k |> k))),
+         )
+    );
+  Js.log(Cont.run(ex1, x => x));
+};
